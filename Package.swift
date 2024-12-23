@@ -16,12 +16,12 @@ let package = Package(
         .target(
             name: "ManageUpgrades",
             dependencies: [],
-            path: "ios/Classes"
+            path: "Sources/ManageUpgrades"
         ),
         .testTarget(
             name: "ManageUpgradesTests",
             dependencies: ["ManageUpgrades"],
-            path: "Tests"
-        ),
+            path: "Tests/ManageUpgradesTests"
+        )
     ]
 )
