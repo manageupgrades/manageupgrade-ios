@@ -9,6 +9,7 @@ let package = Package(
     products: [
         .library(
             name: "ManageUpgrades",
+            type: .dynamic,
             targets: ["ManageUpgrades"]),
     ],
     dependencies: [],
@@ -17,9 +18,7 @@ let package = Package(
             name: "ManageUpgrades",
             dependencies: [],
             path: "Sources/ManageUpgrades",
-            exclude: ["ManageUpgradesPlugin.h", "ManageUpgradesPlugin.m"],
-            sources: ["ManageUpgrades.swift"],
-            publicHeadersPath: "include"
+            sources: ["ManageUpgrades.swift"]
         ),
         .testTarget(
             name: "ManageUpgradesTests",
