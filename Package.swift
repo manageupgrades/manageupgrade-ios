@@ -16,7 +16,10 @@ let package = Package(
         .target(
             name: "ManageUpgrades",
             dependencies: [],
-            path: "Sources/ManageUpgrades"
+            path: "Sources/ManageUpgrades",
+            exclude: ["ManageUpgradesPlugin.h", "ManageUpgradesPlugin.m"],
+            sources: ["ManageUpgrades.swift"],
+            publicHeadersPath: "include"
         ),
         .testTarget(
             name: "ManageUpgradesTests",
