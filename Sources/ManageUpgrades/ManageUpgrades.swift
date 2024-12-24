@@ -51,11 +51,10 @@ public class ManageUpgradesService: NSObject {
                         
                         if maintenanceMode {
                             self.showMaintenanceAlert()
-                           
                             return
                         }
                         
-                        if updateScenario == "Force Upgrade" {
+                        else if updateScenario == "Force Upgrade" {
                             self.showForceUpdateAlert(message: appUpdateNotes, appleId: appleId)
                             
                         } else if updateScenario == "Display Message" {
@@ -111,26 +110,28 @@ public class ManageUpgradesService: NSObject {
             if let url = URL(string: "itms-apps://itunes.apple.com/app/id\(appleId)"),
                UIApplication.shared.canOpenURL(url) {
                 UIApplication.shared.open(url)
-                // Re-present the alert after attempting to open App Store
-                self.showForceUpdateAlert(message: message, appleId: appleId)
             } else {
                 // Fallback to web App Store URL if the direct link fails
                 if let webUrl = URL(string: "https://apps.apple.com/app/id\(appleId)") {
                     UIApplication.shared.open(webUrl)
-                    // Re-present the alert after attempting to open App Store
-                    self.showForceUpdateAlert(message: message, appleId: appleId)
                 }
+            }
+            // Re-present the alert after attempting to open App Store
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                self.showForceUpdateAlert(message: message, appleId: appleId)
             }
         }
         alert.addAction(updateAction)
         
         if let viewController = UIApplication.shared.keyWindow?.rootViewController {
-            viewController.modalPresentationStyle = .fullScreen
-            viewController.definesPresentationContext = true
+            alert.modalPresentationStyle = .fullScreen
+            alert.view.backgroundColor = .clear
+            alert.view.window?.windowLevel = .alert + 1
             viewController.present(alert, animated: true) {
-                // Remove the ability to tap outside to dismiss
-                alert.view.superview?.isUserInteractionEnabled = false
-                alert.view.superview?.subviews.first?.isUserInteractionEnabled = false
+                // Disable interaction with background
+                alert.view.superview?.isUserInteractionEnabled = true
+                alert.view.superview?.subviews.forEach { $0.isUserInteractionEnabled = false }
+                alert.view.isUserInteractionEnabled = true
             }
         }
     }
