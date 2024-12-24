@@ -1,20 +1,11 @@
+import UIKit
 import SafariServices
-
-public protocol AlertPresenter {
-    func showAlert(title: String?, message: String?, actions: [(String, () -> Void)])
-    func showNonDismissibleAlert(title: String?, message: String?, action: (String, () -> Void))
-}
 
 public class ManageUpgradesService: NSObject {
     public static let shared = ManageUpgradesService()
-    private var alertPresenter: AlertPresenter?
     
     private override init() {
         super.init()
-    }
-    
-    public func configure(alertPresenter: AlertPresenter) {
-        self.alertPresenter = alertPresenter
     }
     
     public func checkAppStatus(
@@ -24,115 +15,114 @@ public class ManageUpgradesService: NSObject {
         apiKey: String,
         googleId: String,
         appleId: String,
-        completion: @escaping (Result<AppStatus, Error>) -> Void
+        completion: @escaping ([String: Any]) -> Void
     ) {
         let url = URL(string: "https://api.manageupgrades.com/checkupdate")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "Authorization")
         
-        let parameters: [String: Any] = [
+        let body: [String: Any] = [
             "project_id": projectId,
             "version": version,
             "platform": platform,
-            "api_key": apiKey,
-            "googleid": googleId,
-            "appleid": appleId
+            "api_key": apiKey
         ]
         
-        do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: parameters)
-        } catch {
-            completion(.failure(error))
-            return
-        }
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                DispatchQueue.main.async {
-                    completion(.failure(error))
-                }
-                return
-            }
+        let task = URLSession.shared.dataTask(with: request) { [weak self] (data, response, error) in
+            guard let self = self else { return }
             
-            guard let data = data else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "ManageUpgrades", code: -1, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
+            DispatchQueue.main.async {
+                guard let data = data,
+                      let httpResponse = response as? HTTPURLResponse,
+                      error == nil else {
+                    completion(["error": "Network request failed"])
+                    return
                 }
-                return
-            }
-            
-            do {
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    let status = AppStatus(json: json)
-                    DispatchQueue.main.async {
-                        completion(.success(status))
+                
+                if httpResponse.statusCode == 200 {
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                        let maintenanceMode = json["maintenance_mode"] as? Bool ?? false
+                        let appUpdateNotes = json["appUpdate_notes"] as? String ?? ""
+                        let updateScenario = json["update_scenario"] as? String ?? ""
+                        
+                        if maintenanceMode {
+                            self.showMaintenanceAlert()
+                            completion(["status": "maintenance"])
+                            return
+                        }
+                        
+                        if updateScenario == "Force Upgrade" {
+                            self.showForceUpdateAlert(message: appUpdateNotes, appleId: appleId)
+                            completion(["status": "force_update"])
+                        } else if updateScenario == "Display Message" {
+                            self.showUpdateMessage(message: appUpdateNotes, appleId: appleId)
+                            completion(["status": "display_message"])
+                        } else {
+                            completion(["status": "no_action"])
+                        }
+                    } else {
+                        completion(["error": "Invalid response format"])
                     }
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    completion(.failure(error))
+                } else {
+                    completion(["error": "Server error: \(httpResponse.statusCode)"])
                 }
             }
         }
         task.resume()
     }
     
-    public func showUpdateAlert(status: AppStatus) {
-        guard status.shouldShowAlert else { return }
+    private func showMaintenanceAlert() {
+        let alert = UIAlertController(
+            title: "Under Maintenance",
+            message: "The app is under maintenance. Please try again later.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
         
-        if status.isMaintenance {
-            alertPresenter?.showNonDismissibleAlert(
-                title: status.title,
-                message: status.message,
-                action: ("OK", {})
-            )
-        } else if status.isForceUpdate {
-            alertPresenter?.showNonDismissibleAlert(
-                title: status.title,
-                message: status.message,
-                action: ("Update Now", { [weak self] in
-                    self?.openAppStore(with: status.storeURL)
-                })
-            )
-        } else {
-            alertPresenter?.showAlert(
-                title: status.title,
-                message: status.message,
-                actions: [
-                    ("Update Now", { [weak self] in
-                        self?.openAppStore(with: status.storeURL)
-                    }),
-                    ("Later", {})
-                ]
-            )
+        if let viewController = UIApplication.shared.keyWindow?.rootViewController {
+            viewController.present(alert, animated: true)
         }
     }
     
-    private func openAppStore(with urlString: String?) {
-        guard let urlString = urlString,
-              let url = URL(string: urlString) else { return }
+    private func showForceUpdateAlert(message: String, appleId: String) {
+        let alert = UIAlertController(
+            title: "App Update Required!",
+            message: message,
+            preferredStyle: .alert
+        )
         
-        if UIApplication.shared.canOpenURL(url) {
-            UIApplication.shared.open(url)
+        alert.addAction(UIAlertAction(title: "Update Now", style: .default) { _ in
+            if let url = URL(string: "itms-apps://apps.apple.com/app/id\(appleId)") {
+                UIApplication.shared.open(url)
+            }
+        })
+        
+        if let viewController = UIApplication.shared.keyWindow?.rootViewController {
+            viewController.present(alert, animated: true)
         }
     }
-}
-
-public struct AppStatus {
-    public let shouldShowAlert: Bool
-    public let isForceUpdate: Bool
-    public let isMaintenance: Bool
-    public let title: String
-    public let message: String
-    public let storeURL: String?
     
-    init(json: [String: Any]) {
-        self.shouldShowAlert = json["show_alert"] as? Bool ?? false
-        self.isForceUpdate = json["force_update"] as? Bool ?? false
-        self.isMaintenance = json["maintenance"] as? Bool ?? false
-        self.title = json["title"] as? String ?? "Update Available"
-        self.message = json["message"] as? String ?? "A new version is available."
-        self.storeURL = json["store_url"] as? String
+    private func showUpdateMessage(message: String, appleId: String) {
+        let alert = UIAlertController(
+            title: "Notice",
+            message: message,
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "Update", style: .default) { _ in
+            if let url = URL(string: "itms-apps://apps.apple.com/app/id\(appleId)") {
+                UIApplication.shared.open(url)
+            }
+        })
+        
+        alert.addAction(UIAlertAction(title: "Not Now", style: .cancel))
+        
+        if let viewController = UIApplication.shared.keyWindow?.rootViewController {
+            viewController.present(alert, animated: true)
+        }
     }
 }
