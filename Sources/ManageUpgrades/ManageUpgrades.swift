@@ -1,4 +1,5 @@
 import SafariServices
+import UIKit
 
 public class ManageUpgradesService: NSObject {
     public static let shared = ManageUpgradesService()
