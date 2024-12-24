@@ -14,7 +14,7 @@ public class ManageUpgradesService: NSObject {
         platform: String,
         apiKey: String,
         googleId: String,
-        appleId: String,
+        appleId: String
        
     ) {
         let url = URL(string: "https://api.manageupgrades.com/checkupdate")!
