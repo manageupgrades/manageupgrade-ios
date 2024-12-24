@@ -1,13 +1,20 @@
-#if canImport(UIKit)
-import UIKit
-#endif
 import SafariServices
+
+public protocol AlertPresenter {
+    func showAlert(title: String?, message: String?, actions: [(String, () -> Void)])
+    func showNonDismissibleAlert(title: String?, message: String?, action: (String, () -> Void))
+}
 
 public class ManageUpgradesService: NSObject {
     public static let shared = ManageUpgradesService()
+    private var alertPresenter: AlertPresenter?
     
     private override init() {
         super.init()
+    }
+    
+    public func configure(alertPresenter: AlertPresenter) {
+        self.alertPresenter = alertPresenter
     }
     
     public func checkAppStatus(
@@ -72,48 +79,34 @@ public class ManageUpgradesService: NSObject {
     }
     
     public func showUpdateAlert(status: AppStatus) {
-        #if canImport(UIKit)
         guard status.shouldShowAlert else { return }
         
-        let alert = UIAlertController(
-            title: status.title,
-            message: status.message,
-            preferredStyle: .alert
-        )
-        
         if status.isMaintenance {
-            // For maintenance, only show OK button but don't allow dismissal
-            let okAction = UIAlertAction(title: "OK", style: .default)
-            alert.addAction(okAction)
-            // Prevent alert from being dismissed when tapping outside
-            alert.view.tintColor = .systemBlue
+            alertPresenter?.showNonDismissibleAlert(
+                title: status.title,
+                message: status.message,
+                action: ("OK", {})
+            )
         } else if status.isForceUpdate {
-            // For force update, only show Update Now button and don't allow dismissal
-            let updateAction = UIAlertAction(title: "Update Now", style: .default) { [weak self] _ in
-                self?.openAppStore(with: status.storeURL)
-            }
-            alert.addAction(updateAction)
-            // Prevent alert from being dismissed when tapping outside
-            alert.view.tintColor = .systemBlue
+            alertPresenter?.showNonDismissibleAlert(
+                title: status.title,
+                message: status.message,
+                action: ("Update Now", { [weak self] in
+                    self?.openAppStore(with: status.storeURL)
+                })
+            )
         } else {
-            // For optional updates, show both Update Now and Later buttons
-            alert.addAction(UIAlertAction(title: "Update Now", style: .default) { [weak self] _ in
-                self?.openAppStore(with: status.storeURL)
-            })
-            alert.addAction(UIAlertAction(title: "Later", style: .cancel))
+            alertPresenter?.showAlert(
+                title: status.title,
+                message: status.message,
+                actions: [
+                    ("Update Now", { [weak self] in
+                        self?.openAppStore(with: status.storeURL)
+                    }),
+                    ("Later", {})
+                ]
+            )
         }
-        
-        // Get the top most view controller to present the alert
-        if let topViewController = UIApplication.shared.windows.first?.rootViewController?.topMostViewController() {
-            topViewController.present(alert, animated: true) {
-                // For maintenance and force update, disable alert dismissal
-                if status.isMaintenance || status.isForceUpdate {
-                    alert.view.superview?.isUserInteractionEnabled = true
-                    alert.view.superview?.addGestureRecognizer(UITapGestureRecognizer(target: nil, action: nil))
-                }
-            }
-        }
-        #endif
     }
     
     private func openAppStore(with urlString: String?) {
@@ -143,14 +136,3 @@ public struct AppStatus {
         self.storeURL = json["store_url"] as? String
     }
 }
-
-#if canImport(UIKit)
-extension UIViewController {
-    func topMostViewController() -> UIViewController {
-        if let presented = self.presentedViewController {
-            return presented.topMostViewController()
-        }
-        return self
-    }
-}
-#endif
