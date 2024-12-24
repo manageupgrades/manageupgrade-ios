@@ -1,4 +1,3 @@
-import UIKit
 import SafariServices
 
 public class ManageUpgradesService: NSObject {
