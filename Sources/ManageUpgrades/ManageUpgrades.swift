@@ -15,7 +15,7 @@ public class ManageUpgradesService: NSObject {
         apiKey: String,
         googleId: String,
         appleId: String,
-        completion: @escaping ([String: Any]) -> Void
+       
     ) {
         let url = URL(string: "https://api.manageupgrades.com/checkupdate")!
         var request = URLRequest(url: url)
@@ -39,7 +39,7 @@ public class ManageUpgradesService: NSObject {
                 guard let data = data,
                       let httpResponse = response as? HTTPURLResponse,
                       error == nil else {
-                    completion(["error": "Network request failed"])
+                    
                     return
                 }
                 
@@ -51,24 +51,24 @@ public class ManageUpgradesService: NSObject {
                         
                         if maintenanceMode {
                             self.showMaintenanceAlert()
-                            completion(["status": "maintenance"])
+                           
                             return
                         }
                         
                         if updateScenario == "Force Upgrade" {
                             self.showForceUpdateAlert(message: appUpdateNotes, appleId: appleId)
-                            completion(["status": "force_update"])
+                            
                         } else if updateScenario == "Display Message" {
                             self.showUpdateMessage(message: appUpdateNotes, appleId: appleId)
-                            completion(["status": "display_message"])
+                            
                         } else {
-                            completion(["status": "no_action"])
+                            
                         }
                     } else {
-                        completion(["error": "Invalid response format"])
+                        
                     }
                 } else {
-                    completion(["error": "Server error: \(httpResponse.statusCode)"])
+                    
                 }
             }
         }
