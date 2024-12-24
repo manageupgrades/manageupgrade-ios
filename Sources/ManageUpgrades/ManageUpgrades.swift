@@ -109,7 +109,7 @@ public class ManageUpgradesService: NSObject {
         let updateAction = UIAlertAction(title: "Update Now", style: .default) { _ in
           
                 // Fallback to web App Store URL if the direct link fails
-                if let webUrl = URL(string: "https://apps.apple.com/us/app/\(appleId)") {
+                if let webUrl = URL(string: "https://itunes.apple.com/app/id\(appleId)") {
                     UIApplication.shared.open(webUrl)
                 }
           
@@ -143,7 +143,7 @@ public class ManageUpgradesService: NSObject {
         alert.addAction(UIAlertAction(title: "Update", style: .default) { _ in
          
                 // Fallback to web App Store URL if the direct link fails
-                if let webUrl = URL(string: "https://apps.apple.com/us/app/\(appleId)") {
+                if let webUrl = URL(string: "https://itunes.apple.com/app/id\(appleId)") {
                     UIApplication.shared.open(webUrl)
                     // Re-present the alert after attempting to open App Store
                
