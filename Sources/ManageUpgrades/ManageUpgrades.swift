@@ -81,11 +81,22 @@ public class ManageUpgradesService: NSObject {
             message: "The app is under maintenance. Please try again later.",
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        
+        // Adding a dummy action that does nothing to prevent auto-dismissal
+        let dummyAction = UIAlertAction(title: "OK", style: .default) { _ in
+            // Re-present the same alert if somehow dismissed
+            self.showMaintenanceAlert()
+        }
+        alert.addAction(dummyAction)
         
         if let viewController = UIApplication.shared.keyWindow?.rootViewController {
-            alert.modalPresentationStyle = .fullScreen
-            viewController.present(alert, animated: true)
+            viewController.modalPresentationStyle = .fullScreen
+            viewController.definesPresentationContext = true
+            viewController.present(alert, animated: true) {
+                // Remove the ability to tap outside to dismiss
+                alert.view.superview?.isUserInteractionEnabled = false
+                alert.view.superview?.subviews.first?.isUserInteractionEnabled = false
+            }
         }
     }
     
@@ -96,15 +107,23 @@ public class ManageUpgradesService: NSObject {
             preferredStyle: .alert
         )
         
-        alert.addAction(UIAlertAction(title: "Update Now", style: .default) { _ in
+        let updateAction = UIAlertAction(title: "Update Now", style: .default) { _ in
             if let url = URL(string: "itms-apps://apps.apple.com/app/id\(appleId)") {
                 UIApplication.shared.open(url)
+                // Re-present the alert after attempting to open App Store
+                self.showForceUpdateAlert(message: message, appleId: appleId)
             }
-        })
+        }
+        alert.addAction(updateAction)
         
         if let viewController = UIApplication.shared.keyWindow?.rootViewController {
-            alert.modalPresentationStyle = .fullScreen
-            viewController.present(alert, animated: true)
+            viewController.modalPresentationStyle = .fullScreen
+            viewController.definesPresentationContext = true
+            viewController.present(alert, animated: true) {
+                // Remove the ability to tap outside to dismiss
+                alert.view.superview?.isUserInteractionEnabled = false
+                alert.view.superview?.subviews.first?.isUserInteractionEnabled = false
+            }
         }
     }
     
