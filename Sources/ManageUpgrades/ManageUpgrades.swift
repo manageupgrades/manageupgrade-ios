@@ -68,7 +68,7 @@ public class ManageUpgradesService: NSObject {
         task.resume()
     }
     
-    public func showUpdateAlert(status: AppStatus, on viewController: UIViewController) {
+    public func showUpdateAlert(status: AppStatus) {
         guard status.shouldShowAlert else { return }
         
         let alert = UIAlertController(
@@ -78,21 +78,37 @@ public class ManageUpgradesService: NSObject {
         )
         
         if status.isMaintenance {
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
-        } else {
-            if status.isForceUpdate {
-                alert.addAction(UIAlertAction(title: "Update Now", style: .default) { _ in
-                    self.openAppStore(with: status.storeURL)
-                })
-            } else {
-                alert.addAction(UIAlertAction(title: "Update Now", style: .default) { _ in
-                    self.openAppStore(with: status.storeURL)
-                })
-                alert.addAction(UIAlertAction(title: "Later", style: .cancel))
+            // For maintenance, only show OK button but don't allow dismissal
+            let okAction = UIAlertAction(title: "OK", style: .default)
+            alert.addAction(okAction)
+            // Prevent alert from being dismissed when tapping outside
+            alert.view.tintColor = .systemBlue
+        } else if status.isForceUpdate {
+            // For force update, only show Update Now button and don't allow dismissal
+            let updateAction = UIAlertAction(title: "Update Now", style: .default) { [weak self] _ in
+                self?.openAppStore(with: status.storeURL)
             }
+            alert.addAction(updateAction)
+            // Prevent alert from being dismissed when tapping outside
+            alert.view.tintColor = .systemBlue
+        } else {
+            // For optional updates, show both Update Now and Later buttons
+            alert.addAction(UIAlertAction(title: "Update Now", style: .default) { [weak self] _ in
+                self?.openAppStore(with: status.storeURL)
+            })
+            alert.addAction(UIAlertAction(title: "Later", style: .cancel))
         }
         
-        viewController.present(alert, animated: true)
+        // Get the top most view controller to present the alert
+        if let topViewController = UIApplication.shared.windows.first?.rootViewController?.topMostViewController() {
+            topViewController.present(alert, animated: true) {
+                // For maintenance and force update, disable alert dismissal
+                if status.isMaintenance || status.isForceUpdate {
+                    alert.view.superview?.isUserInteractionEnabled = true
+                    alert.view.superview?.addGestureRecognizer(UITapGestureRecognizer(target: nil, action: nil))
+                }
+            }
+        }
     }
     
     private func openAppStore(with urlString: String?) {
@@ -120,5 +136,14 @@ public struct AppStatus {
         self.title = json["title"] as? String ?? "Update Available"
         self.message = json["message"] as? String ?? "A new version is available."
         self.storeURL = json["store_url"] as? String
+    }
+}
+
+extension UIViewController {
+    func topMostViewController() -> UIViewController {
+        if let presented = self.presentedViewController {
+            return presented.topMostViewController()
+        }
+        return self
     }
 }
