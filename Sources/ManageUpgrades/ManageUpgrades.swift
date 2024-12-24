@@ -84,7 +84,7 @@ public class ManageUpgradesService: NSObject {
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         
         if let viewController = UIApplication.shared.keyWindow?.rootViewController {
-            alert.isModalInPresentation = true  // Prevents dismissal
+            alert.modalPresentationStyle = .fullScreen
             viewController.present(alert, animated: true)
         }
     }
@@ -103,7 +103,7 @@ public class ManageUpgradesService: NSObject {
         })
         
         if let viewController = UIApplication.shared.keyWindow?.rootViewController {
-            alert.isModalInPresentation = true  // Prevents dismissal
+            alert.modalPresentationStyle = .fullScreen
             viewController.present(alert, animated: true)
         }
     }
