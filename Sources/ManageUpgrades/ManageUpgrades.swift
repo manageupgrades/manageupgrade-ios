@@ -148,13 +148,13 @@ public class ManageUpgradesService: NSObject {
                UIApplication.shared.canOpenURL(url) {
                 UIApplication.shared.open(url)
                 // Re-present the alert after attempting to open App Store
-                self.showForceUpdateAlert(message: message, appleId: appleId)
+               
             } else {
                 // Fallback to web App Store URL if the direct link fails
                 if let webUrl = URL(string: "https://apps.apple.com/app/id\(appleId)") {
                     UIApplication.shared.open(webUrl)
                     // Re-present the alert after attempting to open App Store
-                    self.showForceUpdateAlert(message: message, appleId: appleId)
+               
                 }
             }
         })
