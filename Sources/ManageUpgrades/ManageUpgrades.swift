@@ -1,5 +1,7 @@
-import SafariServices
+#if canImport(UIKit)
 import UIKit
+#endif
+import SafariServices
 
 public class ManageUpgradesService: NSObject {
     public static let shared = ManageUpgradesService()
@@ -70,6 +72,7 @@ public class ManageUpgradesService: NSObject {
     }
     
     public func showUpdateAlert(status: AppStatus) {
+        #if canImport(UIKit)
         guard status.shouldShowAlert else { return }
         
         let alert = UIAlertController(
@@ -110,6 +113,7 @@ public class ManageUpgradesService: NSObject {
                 }
             }
         }
+        #endif
     }
     
     private func openAppStore(with urlString: String?) {
@@ -140,6 +144,7 @@ public struct AppStatus {
     }
 }
 
+#if canImport(UIKit)
 extension UIViewController {
     func topMostViewController() -> UIViewController {
         if let presented = self.presentedViewController {
@@ -148,3 +153,4 @@ extension UIViewController {
         return self
     }
 }
+#endif
