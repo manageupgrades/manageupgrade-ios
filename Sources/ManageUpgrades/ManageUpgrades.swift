@@ -81,8 +81,12 @@ public class ManageUpgradesService: NSObject {
             message: "The app is under maintenance. Please try again later.",
             preferredStyle: .alert
         )
-     
-      
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        
+        if let viewController = UIApplication.shared.keyWindow?.rootViewController {
+            alert.modalPresentationStyle = .fullScreen
+            viewController.present(alert, animated: true)
+        }
     }
     
     private func showForceUpdateAlert(message: String, appleId: String) {
